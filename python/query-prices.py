@@ -1,28 +1,18 @@
-import urllib2
 import json
 import time
 import requests
-import boto
-import boto.s3
-from boto.s3.key import Key
-import constants
+import simpleS3Client
 
-response = requests.get("https://api.coinmarketcap.com/v1/ticker/")
-coins = json.loads(response.content)
+def main():
+	response = requests.get("https://api.coinmarketcap.com/v1/ticker/")
+	coins = json.loads(response.content)
 
-s3_conn = boto.connect_s3(constants.ACCESS_KEY, constants.SECRET_KEY)
-bucket = s3_conn.get_bucket(constants.BUCKET_NAME)
-currTime = str(time.time()).split(".")[0]
-filename = "dump-" + currTime
-print filename
-key = boto.s3.key.Key(bucket, filename)
+	currTime = str(time.time()).split(".")[0]
+	filename = "raw/dump-" + currTime
 
-content = ""
-for coin in coins:
-	content += json.dumps(coin) + '\n'
-print content
-print "attempt to write key"
-key.set_contents_from_string(content)
+	print "Found information on " + str(len(coins)) + " coins for time: " + currTime 
+	simpleS3Client.writeToS3(filename, json.dumps(coins))
 
-
+if __name__ == "__main__":
+    main()
 
