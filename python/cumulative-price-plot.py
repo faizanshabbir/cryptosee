@@ -6,7 +6,7 @@ import matplotlib
 import matplotlib.dates
 import matplotlib.pyplot
 import constants
-from optparse import OptionParser
+import simpleS3Client
 
 def convertDateToTime(fromDate):
 	dateObj = datetime.datetime.strptime(fromDate, "%Y-%m-%d %H:%M:%S")
@@ -19,7 +19,7 @@ def getPartialTime(fromDate):
 
 def main():
 	startDate = "2017-05-25 10:00:00"
-	endDate = "2017-05-28 10:00:00"
+	endDate = "2017-05-26 05:00:00"
 
 	startTime = convertDateToTime(startDate)
 	endTime = convertDateToTime(endDate)
@@ -31,9 +31,8 @@ def main():
 
 	symbol = "Ethereum"
 
-	time1 = time.time()
 	objectListv2 = []
-	commonPrefix = "dump-"
+	commonPrefix = "raw/dump-"
 	client = boto3.client('s3', aws_access_key_id=constants.ACCESS_KEY, aws_secret_access_key=constants.SECRET_KEY)
 	paginator = client.get_paginator('list_objects_v2')
 	for result in paginator.paginate(Bucket=constants.BUCKET_NAME, StartAfter=commonPrefix+str(begTime)):
@@ -49,14 +48,11 @@ def main():
 					objectListv2.append(keyString)
 
 	print str(len(objectListv2)) + " objects found to read"
-	print time.time() - time1
 
 	times = []
 	prices = []
 	for i, keyString in enumerate(objectListv2):
-		objResp = client.get_object(Bucket=constants.BUCKET_NAME, Key=keyString)
-		body = objResp['Body'].read()
-		jsonBody = json.loads(body)
+		jsonBody = json.loads(simpleS3Client.readFromS3(keyString))
 		coin = [obj for obj in jsonBody if(obj['name'] == symbol)]
 		prices.append(coin[0]['price_usd'])
 		times.append(datetime.datetime.fromtimestamp(float(coin[0]['last_updated'])))
